@@ -33,7 +33,6 @@ function register_entity(name, def)
                         moveresult.axes = axes
                     end
                     if mr_old_velocity then
-                        -- TODO make sure old_speed is renamed to old_velocity
                         moveresult.old_velocity = moveresult.collisions[1].old_velocity
                     end
                 end
