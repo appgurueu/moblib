@@ -1,8 +1,16 @@
+local function vertical_rotation(d)
+    return -math.atan2(d.x, d.z)
+end
+
+local function horizontal_rotation(d)
+    return math.atan2(d.y, math.sqrt(d.x*d.x + d.y*d.y))
+end
+
 -- gets rotation in radians for a z-facing object
 function get_rotation(direction)
     return {
-        x = math.atan2(direction.y, math.sqrt(math.pow(direction.z, 2)+math.pow(direction.x, 2))),
-        y = -math.atan2(direction.x, direction.z),
+        x = horizontal_rotation(direction),
+        y = vertical_rotation(direction),
         z = 0
     }
 end
@@ -11,8 +19,8 @@ end
 function get_wield_rotation(direction)
     return {
         x = 0,
-        y = 1.5*math.pi-math.atan2(direction.x, direction.z),
-        z = 1.25*math.pi+math.atan2(direction.y, math.sqrt(direction.z*direction.z+direction.x*direction.x))
+        y = 1.5*math.pi+vertical_rotation(direction),
+        z = 1.25*math.pi+horizontal_rotation(direction)
     }
 end
 
