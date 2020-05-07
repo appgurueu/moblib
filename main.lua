@@ -7,6 +7,15 @@ function get_rotation(direction)
     }
 end
 
+-- gets rotation in radians for a wielditem (such as a sword)
+function get_wield_rotation(direction)
+    return {
+        x = 0,
+        y = 1.5*math.pi-math.atan2(direction.x, direction.z),
+        z = 1.25*math.pi+math.atan2(direction.y, math.sqrt(direction.z*direction.z+direction.x*direction.x))
+    }
+end
+
 -- gets the direction for a rotated vector (0, 0, 1), inverse of get_rotation
 function get_direction(rotation)
     local rx, ry = rotation.x, rotation.y
@@ -29,7 +38,6 @@ function register_entity(name, def)
     if props.moveresult then
         -- localizing variables for performance reasons
         local mr = props.moveresult
-        local mr_collides = mr.collides
         local mr_collisions = mr.collisions
         local mr_axes = mr.axes
         local mr_old_velocity = mr.old_velocity
