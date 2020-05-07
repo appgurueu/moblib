@@ -124,8 +124,8 @@ function register_entity(name, def)
         end
     end
     if props.staticdata then
-        local serializer = ({json = minetest.write_json, serialize = minetest.serialize})[props.staticdata]
-        local deserializer = ({json = minetest.parse_json, serialize = minetest.deserialize})[props.staticdata]
+        local serializer = ({json = minetest.write_json, lua = minetest.serialize})[props.staticdata]
+        local deserializer = ({json = minetest.parse_json, lua = minetest.deserialize})[props.staticdata]
         local old_on_activate = on_activate
         function on_activate(self, staticdata, dtime)
             self._ = (staticdata ~= "" and deserializer(staticdata)) or {}
