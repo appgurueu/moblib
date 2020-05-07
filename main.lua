@@ -43,6 +43,20 @@ function register_entity(name, def)
     def.lua_properties = nil
     local on_activate = def.on_activate or function() end
     local on_step = def.on_step or function() end
+    local terminal_speed = props.terminal_speed
+    if terminal_speed then
+        local old_on_step = on_step
+        function on_step(self, dtime, ...)
+            old_on_step(self, dtime, ...)
+            local obj = self.object
+            local vel = obj:get_velocity()
+            if not vel then return end -- object has been deleted
+            local len = vector.length(obj:get_velocity())
+            if len > terminal_speed then
+                obj:set_velocity(vector.multiply(vector.divide(vel, len)))
+            end
+        end
+    end
     if props.moveresult then
         -- localizing variables for performance reasons
         local mr = props.moveresult
@@ -74,44 +88,46 @@ function register_entity(name, def)
             end
             local old_on_step = on_step
             function on_step(self, dtime)
-                local obj = self.object
-                local expected_vel = vector.add(self._last_velocity, vector.multiply(obj:get_acceleration(), dtime))
-                local velocity = obj:get_velocity()
-                local diff = vector.subtract(expected_vel, velocity)
-                local collides = vector.length(diff) >= sensitivity
-                local moveresult = {collides = collides}
-                if collides then
-                    if mr_collisions then
-                        local collisions = {}
-                        diff = vector.apply(diff, math.abs)
-                        local new_velocity = self._last_velocity
-                        for axis, component_diff in pairs(diff) do
-                            if component_diff > sensitivity then
-                                new_velocity[axis] = velocity[axis]
-                                table.insert(collisions, {
-                                    axis = axis,
-                                    old_velocity = self._last_velocity,
-                                    new_velocity = new_velocity
-                                })
+                if self._last_velocity then
+                    local obj = self.object
+                    local expected_vel = vector.add(self._last_velocity, vector.multiply(obj:get_acceleration(), dtime))
+                    local velocity = obj:get_velocity()
+                    local diff = vector.subtract(expected_vel, velocity)
+                    local collides = vector.length(diff) >= sensitivity
+                    local moveresult = {collides = collides}
+                    if collides then
+                        if mr_collisions then
+                            local collisions = {}
+                            diff = vector.apply(diff, math.abs)
+                            local new_velocity = self._last_velocity
+                            for axis, component_diff in pairs(diff) do
+                                if component_diff > sensitivity then
+                                    new_velocity[axis] = velocity[axis]
+                                    table.insert(collisions, {
+                                        axis = axis,
+                                        old_velocity = self._last_velocity,
+                                        new_velocity = new_velocity
+                                    })
+                                end
                             end
+                            moveresult.collisions = collisions
                         end
-                        moveresult.collisions = collisions
-                    end
-                    if mr_axes then
-                        local axes = {}
-                        diff = vector.apply(diff, math.abs)
-                        for axis, component_diff in pairs(diff) do
-                            if component_diff > sensitivity then
-                                axes[axis] = true
+                        if mr_axes then
+                            local axes = {}
+                            diff = vector.apply(diff, math.abs)
+                            for axis, component_diff in pairs(diff) do
+                                if component_diff > sensitivity then
+                                    axes[axis] = true
+                                end
                             end
+                            moveresult.axes = axes
                         end
-                        moveresult.axes = axes
-                    end
-                    if mr_old_velocity then
-                        moveresult.old_velocity = self._last_velocity
-                    end
-                    if mr_acc_dependent then
-                        moveresult.acceleration_dependent = vector.length(vector.subtract(self._last_velocity, velocity)) < sensitivity
+                        if mr_old_velocity then
+                            moveresult.old_velocity = self._last_velocity
+                        end
+                        if mr_acc_dependent then
+                            moveresult.acceleration_dependent = vector.length(vector.subtract(self._last_velocity, velocity)) < sensitivity
+                        end
                     end
                 end
                 old_on_step(self, dtime, moveresult)
