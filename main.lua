@@ -88,9 +88,9 @@ function register_entity(name, def)
             end
             local old_on_step = on_step
             function on_step(self, dtime)
+                local obj = self.object
                 local moveresult = {collides = false}
                 if self._last_velocity then
-                    local obj = self.object
                     local expected_vel = vector.add(self._last_velocity, vector.multiply(obj:get_acceleration(), dtime))
                     local velocity = obj:get_velocity()
                     local diff = vector.subtract(expected_vel, velocity)
