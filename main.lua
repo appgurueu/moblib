@@ -1,3 +1,12 @@
+-- gets rotation in radians for a z-facing object
+function get_rotation(direction)
+    return {
+        x = math.atan2(direction.y, math.sqrt(math.pow(direction.z, 2)+math.pow(direction.x, 2))),
+        y = -math.atan2(direction.x, direction.z),
+        z = 0
+    }
+end
+
 local engine_moveresult = minetest.has_feature("object_step_has_moveresult")
 local sensitivity = 0.01
 function register_entity(name, def)
@@ -102,7 +111,4 @@ function register_entity(name, def)
     def.on_activate = on_activate
     def.on_step = on_step
     minetest.register_entity(name, def)
-    return function()
-        -- minetest.register_entity(name, def)
-    end
 end
