@@ -7,6 +7,18 @@ function get_rotation(direction)
     }
 end
 
+-- gets the direction for a rotated vector (0, 0, 1), inverse of get_rotation
+function get_direction(rotation)
+    local rx, ry = rotation.x, rotation.y
+    local direction = {}
+    -- x rotation
+    direction.y = math.sin(rx)
+    local z = math.cos(rx)
+    -- y rotation
+    direction.x = -(z * math.sin(ry))
+    direction.z = z * math.cos(ry)
+end
+
 local engine_moveresult = minetest.has_feature("object_step_has_moveresult")
 local sensitivity = 0.01
 function register_entity(name, def)
