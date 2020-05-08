@@ -1,9 +1,11 @@
-local function vertical_rotation(d)
-    return -math.atan2(d.x, d.z)
+-- x/z-rotation
+local function horizontal_rotation(d)
+    return math.atan2(d.y, math.sqrt(d.x*d.x + d.z*d.z))
 end
 
-local function horizontal_rotation(d)
-    return math.atan2(d.y, math.sqrt(d.x*d.x + d.y*d.y))
+-- y-rotation
+local function vertical_rotation(d)
+    return -math.atan2(d.x, d.z)
 end
 
 -- gets rotation in radians for a z-facing object
@@ -36,6 +38,7 @@ function get_direction(rotation)
     direction.z = z * math.cos(ry)
 end
 
+-- TODO implement physics such as air resistance
 local engine_moveresult = minetest.has_feature("object_step_has_moveresult")
 local sensitivity = 0.01
 function register_entity(name, def)
