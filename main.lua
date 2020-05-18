@@ -1,3 +1,7 @@
+storage = minetest.get_mod_storage()
+entities_by_id = {}
+local highest_id = storage:get_int("highest_id")
+
 -- x/z-rotation
 local function horizontal_rotation(d)
     return math.atan2(d.y, math.sqrt(d.x*d.x + d.z*d.z))
@@ -153,6 +157,19 @@ function register_entity(name, def)
         end
         function def.get_staticdata(self)
             return serializer(self._)
+        end
+    end
+    if props.id then
+        assert(props.staticdata)
+        local old_on_activate = on_activate
+        function on_activate(self, staticdata, dtime)
+            old_on_activate(self, staticdata, dtime)
+            if not self._.id then
+                highest_id = highest_id + 1
+                self._.id = highest_id
+                storage:set_int("highest_id", highest_id)
+            end
+            entities_by_id[self._.id] = self
         end
     end
     def.on_activate = on_activate
