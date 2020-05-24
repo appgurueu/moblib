@@ -40,6 +40,7 @@ function get_direction(rotation)
     -- y rotation
     direction.x = -(z * math.sin(ry))
     direction.z = z * math.cos(ry)
+    return direction
 end
 
 -- TODO implement physics such as air resistance
