@@ -21,6 +21,44 @@ function get_rotation(direction)
     }
 end
 
+-- converts a rotation from -pi to pi to 2pi to 0
+function convert_rotation(rotation)
+    return vector.apply(rotation, function(c)
+        if c < 0 then
+            return 2*math.pi + c
+        end
+        return c
+    end)
+end
+
+-- shorthand
+function get_converted_rotation(direction)
+    return convert_rotation(get_rotation(direction))
+end
+
+-- normalizes a rotation
+function normalize_rotation(rotation)
+    return vector.apply(rotation, function(c)
+        local nc = c % (2*math.pi)
+        if c < 0 then
+            return 2*math.pi + nc
+        end
+        return nc
+    end)
+end
+
+function get_minimum_converted_rotation_difference(rotation, other_rotation)
+    return vector.apply(vector.subtract(rotation, other_rotation), function(c)
+        if c > math.pi then
+            return -2*math.pi + c
+        end
+        if c < -math.pi then
+            return 2*math.pi + c
+        end
+        return c
+    end)
+end
+
 -- gets rotation in radians for a wielditem (such as a sword)
 function get_wield_rotation(direction)
     return {
@@ -148,9 +186,25 @@ function register_entity(name, def)
             end
         end
     end
-    if props.staticdata then
-        local serializer = ({json = minetest.write_json, lua = minetest.serialize})[props.staticdata]
-        local deserializer = ({json = minetest.parse_json, lua = minetest.deserialize})[props.staticdata]
+    local props_staticdata = props.staticdata
+    if props_staticdata then
+        local implementation
+        if type(props_staticdata) == "table" then
+            implementation = props_staticdata
+        else
+            implementation = ({
+                json = {
+                    serializer = minetest.write_json,
+                    deserializer = minetest.parse_json
+                },
+                lua = {
+                    serializer = minetest.serialize,
+                    deserializer = minetest.deserialize
+                }
+            })[props_staticdata]
+        end
+        local serializer = implementation.serializer
+        local deserializer = implementation.deserializer
         local old_on_activate = on_activate
         function on_activate(self, staticdata, dtime)
             self._ = (staticdata ~= "" and deserializer(staticdata)) or {}
@@ -161,7 +215,7 @@ function register_entity(name, def)
         end
     end
     if props.id then
-        assert(props.staticdata)
+        assert(props_staticdata)
         local old_on_activate = on_activate
         function on_activate(self, staticdata, dtime)
             old_on_activate(self, staticdata, dtime)
