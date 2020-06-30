@@ -111,7 +111,8 @@ function register_entity(name, def)
         local mr_old_velocity = mr.old_velocity
         local mr_acc_dependent = mr.acceleration_dependent
         if engine_moveresult and not mr_acc_dependent then
-            function def.on_step(self, dtime, moveresult)
+            local old_on_step = on_step
+            function on_step(self, dtime, moveresult)
                 if moveresult.collides then
                     if mr_axes then
                         local axes = {}
@@ -124,7 +125,7 @@ function register_entity(name, def)
                         moveresult.old_velocity = moveresult.collisions[1].old_velocity
                     end
                 end
-                on_step(self, dtime, moveresult)
+                old_on_step(self, dtime, moveresult)
             end
         else
             local old_on_activate = on_activate
