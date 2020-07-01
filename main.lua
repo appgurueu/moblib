@@ -127,6 +127,10 @@ function register_entity(name, def)
                 end
                 old_on_step(self, dtime, moveresult)
             end
+            -- no need to update internal variables
+            function def._set_velocity(self, velocity)
+                self.object:set_velocity(velocity)
+            end
         else
             local old_on_activate = on_activate
             function on_activate(self, staticdata, dtime)
