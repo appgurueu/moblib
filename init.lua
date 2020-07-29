@@ -1,1 +1,1 @@
-modlib.mod.init("moblib")
+modlib.mod.init()
