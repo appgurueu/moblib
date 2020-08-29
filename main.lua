@@ -1,15 +1,57 @@
 storage = minetest.get_mod_storage()
 entities_by_id = {}
+objects_by_id = setmetatable({}, {
+    __index = function(_, id)
+        local entity = entities_by_id[id]
+        return entity and entity.object
+    end,
+    __newindex = function(self, id, object)
+        local luaentity = object:get_luaentity()
+        if luaentity then
+            entities_by_id[id] = luaentity
+        else
+            self[id] = object
+        end
+    end
+})
+
 local highest_id = storage:get_int("highest_id")
 
+minetest.register_on_joinplayer(function(player)
+    -- INFO no need to check whether it's an entity
+    rawset(objects_by_id, player:get_player_name(), player)
+end)
+
+minetest.register_on_leaveplayer(function(player)
+    objects_by_id[player:get_player_name()] = nil
+end)
+
+function get_id(object)
+    if object:is_player() then
+        return object:get_player_name()
+    end
+    local luaentity = object:get_luaentity()
+    if luaentity and luaentity._ then
+        return luaentity._.id
+    end
+end
+
+function get_object(id)
+    return objects_by_id[id]
+end
+
+function get_entity(id)
+    return entities_by_id[id]
+end
+
 -- x/z-rotation
-local function horizontal_rotation(d)
-    return math.atan2(d.y, math.sqrt(d.x*d.x + d.z*d.z))
+local function horizontal_rotation(direction)
+    return math.atan2(direction.y, math.sqrt(direction.x*direction.x + direction.z*direction.z))
 end
 
 -- y-rotation
-local function vertical_rotation(d)
-    return -math.atan2(d.x, d.z)
+local function vertical_rotation(direction)
+    return -math.atan2(direction.x, direction.z)
 end
 
 -- gets rotation in radians for a z-facing object
@@ -81,8 +123,14 @@ function get_direction(rotation)
     return direction
 end
 
+function set_look_dir(player, direction)
+    local rotation = get_rotation(direction)
+    player:set_look_vertical(-rotation.x)
+    player:set_look_horizontal(rotation.y)
+end
+
 -- TODO implement physics such as air resistance
-local engine_moveresult = minetest.has_feature("object_step_has_moveresult")
+local engine_has_moveresult = minetest.has_feature("object_step_has_moveresult")
 local sensitivity = 0.01
 function register_entity(name, def)
     local props = def.lua_properties
@@ -103,6 +151,7 @@ function register_entity(name, def)
             end
         end
     end
+    -- TODO consider HACK for #10158
     if props.moveresult then
         -- localizing variables for performance reasons
         local mr = props.moveresult
@@ -110,9 +159,17 @@ function register_entity(name, def)
         local mr_axes = mr.axes
         local mr_old_velocity = mr.old_velocity
         local mr_acc_dependent = mr.acceleration_dependent
-        if engine_moveresult and not mr_acc_dependent then
-            local old_on_step = on_step
-            function on_step(self, dtime, moveresult)
+        local mr_speed_diff = mr.speed_difference
+        local mr_moblib = mr.moblib
+        local old_on_activate = on_activate
+        function on_activate(self, staticdata, dtime)
+            old_on_activate(self, staticdata, dtime)
+            self._last_velocity = self.object:get_velocity()
+        end
+        local old_on_step = on_step
+        function on_step(self, dtime, moveresult)
+            local obj = self.object
+            if engine_has_moveresult and not mr_acc_dependent and not mr_moblib then
                 if moveresult.collides then
                     if mr_axes then
                         local axes = {}
@@ -122,32 +179,30 @@ function register_entity(name, def)
                         moveresult.axes = axes
                     end
                     if mr_old_velocity then
-                        moveresult.old_velocity = moveresult.collisions[1].old_velocity
+                        if not moveresult.collisions[1] then
+                            moveresult.old_velocity = self._last_velocity
+                        else
+                            moveresult.old_velocity = moveresult.collisions[1].old_velocity
+                        end
+                    end
+                    if mr_speed_diff then
+                        local expected_vel = vector.add(self._last_velocity, vector.multiply(obj:get_acceleration(), dtime))
+                        moveresult.speed_difference = vector.length(vector.subtract(expected_vel, obj:get_velocity()))
                     end
                 end
-                old_on_step(self, dtime, moveresult)
-            end
-            -- no need to update internal variables
-            function def._set_velocity(self, velocity)
-                self.object:set_velocity(velocity)
-            end
-        else
-            local old_on_activate = on_activate
-            function on_activate(self, staticdata, dtime)
-                old_on_activate(self, staticdata, dtime)
-                self._last_velocity = self.object:get_velocity()
-            end
-            local old_on_step = on_step
-            function on_step(self, dtime)
-                local obj = self.object
-                local moveresult = {collides = false}
+            else
+                moveresult = {collides = false}
                 if self._last_velocity then
                     local expected_vel = vector.add(self._last_velocity, vector.multiply(obj:get_acceleration(), dtime))
                     local velocity = obj:get_velocity()
                     local diff = vector.subtract(expected_vel, velocity)
-                    local collides = vector.length(diff) >= sensitivity
+                    local speed_difference = vector.length(diff)
+                    local collides = speed_difference >= sensitivity
                     moveresult.collides = collides
                     if collides then
+                        if mr_speed_diff then
+                            moveresult.speed_difference = speed_difference
+                        end
                         if mr_collisions then
                             local collisions = {}
                             diff = vector.apply(diff, math.abs)
@@ -182,13 +237,13 @@ function register_entity(name, def)
                         end
                     end
                 end
-                old_on_step(self, dtime, moveresult)
-                self._last_velocity = obj:get_velocity()
             end
-            function def._set_velocity(self, velocity)
-                self.object:set_velocity(velocity)
-                self._last_velocity = velocity
-            end
+            old_on_step(self, dtime, moveresult)
+            self._last_velocity = obj:get_velocity()
+        end
+        function def._set_velocity(self, velocity)
+            self.object:set_velocity(velocity)
+            self._last_velocity = velocity
         end
     end
     local props_staticdata = props.staticdata
