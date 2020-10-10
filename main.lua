@@ -129,6 +129,15 @@ function set_look_dir(player, direction)
     player:set_look_horizontal(rotation.y)
 end
 
+function calculate_damage(object, time_since_last_punch, caps)
+    local damage = 0
+    local armor_groups = assert(object:get_armor_groups()) -- object has to be alive
+    for group, group_damage in pairs(caps.damage_groups) do
+        damage = damage + group_damage * (armor_groups[group] or 0) / 100
+    end
+    return damage * math.min(1, math.max(0, time_since_last_punch / caps.full_punch_interval))
+end
+
 -- TODO implement physics such as air resistance
 local engine_has_moveresult = minetest.has_feature("object_step_has_moveresult")
 local sensitivity = 0.01
