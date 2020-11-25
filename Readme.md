@@ -4,7 +4,7 @@ Low-level high-performance entity library
 
 ## About
 
-No dependencies. Licensed under the MIT License. Written by Lars Mueller aka LMD or appguru(eu).
+Depends on [`modlib`](https://github.com/appgurueu/modlib). Licensed under the MIT License. Written by Lars Mueller aka LMD or appguru(eu).
 
 ## Links
 
