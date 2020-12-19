@@ -129,6 +129,19 @@ function set_look_dir(player, direction)
     player:set_look_horizontal(rotation.y)
 end
 
+function get_eye_pos(object)
+    local eye_pos = object:get_pos()
+    if object:is_player() then
+        eye_pos.y = eye_pos.y + object:get_properties().eye_height
+    end
+    return eye_pos
+end
+
+function get_center(object)
+    local collisionbox = object:get_properties().collisionbox
+    return vector.add(object:get_pos(), vector.divide(vector.add(vector.new(collisionbox[1], collisionbox[2], collisionbox[3]), vector.new(unpack(collisionbox, 4))), 2))
+end
+
 function calculate_damage(object, time_since_last_punch, caps)
     local damage = 0
     local armor_groups = assert(object:get_armor_groups()) -- object has to be alive
