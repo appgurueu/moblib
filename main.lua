@@ -142,6 +142,17 @@ function get_center(object)
     return vector.add(object:get_pos(), vector.divide(vector.add(vector.new(collisionbox[1], collisionbox[2], collisionbox[3]), vector.new(unpack(collisionbox, 4))), 2))
 end
 
+function get_mass(object)
+    local entity = object:get_luaentity()
+    if entity and entity._mass then
+        return entity._mass
+    end
+    local collisionbox = object:get_properties().collisionbox
+    local mass = (collisionbox[4] - collisionbox[1]) * (collisionbox[5] - collisionbox[2]) * (collisionbox[6] - collisionbox[3])
+    assert(mass > 0)
+    return mass
+end
+
 function calculate_damage(object, time_since_last_punch, caps)
     local damage = 0
     local armor_groups = assert(object:get_armor_groups()) -- object has to be alive
