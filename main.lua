@@ -1,5 +1,5 @@
 storage = minetest.get_mod_storage()
-entities_by_id = {}
+entities_by_id = setmetatable({}, {__mode = "v"})
 objects_by_id = setmetatable({}, {
     __index = function(_, id)
         local entity = entities_by_id[id]
@@ -12,7 +12,8 @@ objects_by_id = setmetatable({}, {
         else
             self[id] = object
         end
-    end
+    end,
+	__mode = "v"
 })
 
 local highest_id = storage:get_int("highest_id")
