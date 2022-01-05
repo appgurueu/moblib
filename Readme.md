@@ -35,7 +35,7 @@ Inverse of `get_rotation`.
 
 ```lua
 moblib.register_entity(name, {
-    initial_properties =  {...},
+    initial_properties = {...},
     lua_properties = {
         moveresult = {
             collisions = nil,
