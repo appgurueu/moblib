@@ -185,6 +185,47 @@ function register_entity(name, def)
             end
         end
     end
+	local props_staticdata = props.staticdata
+	if props_staticdata then
+        local implementation
+        if type(props_staticdata) == "table" then
+            implementation = props_staticdata
+        else
+            implementation = ({
+                json = {
+                    serializer = minetest.write_json,
+                    deserializer = minetest.parse_json
+                },
+                lua = {
+                    serializer = minetest.serialize,
+                    deserializer = minetest.deserialize
+                }
+            })[props_staticdata]
+        end
+        local serializer = implementation.serializer
+        local deserializer = implementation.deserializer
+        local old_on_activate = on_activate
+        function on_activate(self, staticdata, dtime)
+            self._ = (staticdata ~= "" and deserializer(staticdata)) or {}
+            old_on_activate(self, staticdata, dtime)
+        end
+        function def.get_staticdata(self)
+            return serializer(self._)
+        end
+    end
+	if props.id then
+        assert(props_staticdata)
+        local old_on_activate = on_activate
+        function on_activate(self, staticdata, dtime)
+            if not self._.id then
+                highest_id = highest_id + 1
+                self._.id = highest_id
+                storage:set_int("highest_id", highest_id)
+            end
+            entities_by_id[self._.id] = self
+			old_on_activate(self, staticdata, dtime)
+        end
+    end
     -- TODO consider HACK for #10158
     if props.moveresult then
         -- localizing variables for performance reasons
@@ -278,47 +319,6 @@ function register_entity(name, def)
         function def._set_velocity(self, velocity)
             self.object:set_velocity(velocity)
             self._last_velocity = velocity
-        end
-    end
-    local props_staticdata = props.staticdata
-    if props_staticdata then
-        local implementation
-        if type(props_staticdata) == "table" then
-            implementation = props_staticdata
-        else
-            implementation = ({
-                json = {
-                    serializer = minetest.write_json,
-                    deserializer = minetest.parse_json
-                },
-                lua = {
-                    serializer = minetest.serialize,
-                    deserializer = minetest.deserialize
-                }
-            })[props_staticdata]
-        end
-        local serializer = implementation.serializer
-        local deserializer = implementation.deserializer
-        local old_on_activate = on_activate
-        function on_activate(self, staticdata, dtime)
-            self._ = (staticdata ~= "" and deserializer(staticdata)) or {}
-            old_on_activate(self, staticdata, dtime)
-        end
-        function def.get_staticdata(self)
-            return serializer(self._)
-        end
-    end
-    if props.id then
-        assert(props_staticdata)
-        local old_on_activate = on_activate
-        function on_activate(self, staticdata, dtime)
-            old_on_activate(self, staticdata, dtime)
-            if not self._.id then
-                highest_id = highest_id + 1
-                self._.id = highest_id
-                storage:set_int("highest_id", highest_id)
-            end
-            entities_by_id[self._.id] = self
         end
     end
     def.on_activate = on_activate
