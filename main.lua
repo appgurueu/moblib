@@ -186,6 +186,10 @@ function register_entity(name, def)
 		end
 	end
 	local props_staticdata = props.staticdata
+	local props_id = props.id
+	if props_id then
+		assert(props_staticdata)
+	end
 	if props_staticdata then
 		local implementation
 		if type(props_staticdata) == "table" then
@@ -207,23 +211,18 @@ function register_entity(name, def)
 		local old_on_activate = on_activate
 		function on_activate(self, staticdata, dtime)
 			self._ = (staticdata ~= "" and deserializer(staticdata)) or {}
+			if props_id then
+				if not self._.id then
+					highest_id = highest_id + 1
+					self._.id = highest_id
+					storage:set_int("highest_id", highest_id)
+				end
+				entities_by_id[self._.id] = self
+			end
 			old_on_activate(self, staticdata, dtime)
 		end
 		function def.get_staticdata(self)
 			return serializer(self._)
-		end
-	end
-	if props.id then
-		assert(props_staticdata)
-		local old_on_activate = on_activate
-		function on_activate(self, staticdata, dtime)
-			if not self._.id then
-				highest_id = highest_id + 1
-				self._.id = highest_id
-				storage:set_int("highest_id", highest_id)
-			end
-			entities_by_id[self._.id] = self
-			old_on_activate(self, staticdata, dtime)
 		end
 	end
 	-- TODO consider HACK for #10158
